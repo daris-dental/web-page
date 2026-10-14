@@ -1,0 +1,81 @@
+{% extends 'panel/_base_panel.html' %}
+{% block title %}Artículos · Panel{% endblock %}
+
+{% block panel_content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h1 class="h4 mb-0">Artículos dentales</h1>
+  <a href="{% url 'panel:articulos_crear' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg"></i> Nuevo artículo
+  </a>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle bg-white shadow-sm rounded">
+    <thead class="table-light">
+      <tr>
+        <th style="width:60px;"></th>
+        <th>Nombre</th>
+        <th class="d-none d-md-table-cell">Unidad</th>
+        <th class="text-end">Precio</th>
+        <th class="text-center">Estado</th>
+        <th class="text-center d-none d-md-table-cell">Visible</th>
+        <th class="text-end"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in articulos %}
+        <tr>
+          <td>
+            {% if a.imagen %}
+              <img src="{{ a.imagen.url }}" alt="{{ a.nombre }}"
+                   class="rounded shadow-sm"
+                   style="width:44px;height:44px;object-fit:cover;">
+            {% else %}
+              <div class="d-flex align-items-center justify-content-center rounded bg-light"
+                   style="width:44px;height:44px;">
+                <i class="bi bi-box-seam text-muted"></i>
+              </div>
+            {% endif %}
+          </td>
+          <td>
+            <strong>{{ a.nombre }}</strong>
+            {% if a.descripcion %}
+              <div class="text-muted small">{{ a.descripcion|truncatechars:70 }}</div>
+            {% endif %}
+          </td>
+          <td class="d-none d-md-table-cell">{{ a.unidad|default:"—" }}</td>
+          <td class="text-end fw-semibold" style="color:#005a8c;">{{ a.precio_usd }} USD</td>
+          <td class="text-center">
+            {% if a.estado == 'en_stock' %}
+              <span class="badge bg-success">En stock</span>
+            {% else %}
+              <span class="badge bg-danger">Agotado</span>
+            {% endif %}
+          </td>
+          <td class="text-center d-none d-md-table-cell">
+            {% if a.activo %}
+              <i class="bi bi-eye text-success"></i>
+            {% else %}
+              <i class="bi bi-eye-slash text-muted"></i>
+            {% endif %}
+          </td>
+          <td class="text-end text-nowrap">
+            <a href="{% url 'panel:articulos_editar' a.pk %}"
+               class="btn btn-sm btn-outline-primary" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'panel:articulos_eliminar' a.pk %}"
+               class="btn btn-sm btn-outline-danger" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">
+          No hay artículos creados.
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

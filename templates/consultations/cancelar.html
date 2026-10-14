@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Cancelar consulta{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-6">
+    <div class="card card-soft shadow-sm border-danger">
+      <div class="card-body p-4 text-center">
+        <i class="bi bi-exclamation-triangle display-4 text-danger"></i>
+        <h1 class="h5 mt-3">¿Cancelar esta consulta?</h1>
+        <p class="text-muted small mb-3">
+          Se cancelará la cita y la franja quedará libre para otros pacientes.
+          Las consultas posteriores del día <strong>no</strong> se verán afectadas.
+        </p>
+
+        <ul class="list-group list-group-flush text-start small mb-4">
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Servicio</span>
+            <strong>{{ consulta.servicio.nombre }}</strong>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Fecha</span>
+            <strong>{{ consulta.fecha|date:"d/m/Y H:i" }}</strong>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span>Estado</span>
+            <strong>{{ consulta.get_estado_display }}</strong>
+          </li>
+        </ul>
+
+        <form method="post" class="d-flex justify-content-center gap-2">
+          {% csrf_token %}
+          <button class="btn btn-danger">
+            <i class="bi bi-x-circle"></i> Sí, cancelar
+          </button>
+          <a href="{% url 'consultations:detalle' consulta.pk %}"
+             class="btn btn-outline-secondary">Volver</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

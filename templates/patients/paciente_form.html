@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Datos clínicos{% endblock %}
+
+{% block content %}
+<div class="alert alert-info small">
+  <i class="bi bi-info-circle"></i>
+  Si no tiene alergias o medicación, escriba <strong>«Ninguna»</strong>.
+  Todos los campos son obligatorios para poder agendar.
+</div>
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-7">
+    <div class="card card-soft shadow-sm">
+      <div class="card-body p-4 p-md-5">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <i class="bi bi-clipboard2-pulse display-6 text-primary"></i>
+          <div>
+            <h1 class="h4 mb-0">Datos clínicos del paciente</h1>
+            <p class="text-muted small mb-0">
+              Esta información ayuda al Dr. Torres a atenderle con seguridad.
+            </p>
+          </div>
+        </div>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% include '_form_fields.html' %}
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check2"></i> Guardar
+            </button>
+            <a href="{% url 'patients:perfil' %}" class="btn btn-outline-secondary">
+              Cancelar
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends 'panel/_base_panel.html' %}
+{% block title %}Servicios · Panel{% endblock %}
+
+{% block panel_content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h1 class="h4 mb-0">Servicios</h1>
+  <a href="{% url 'panel:servicios_crear' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg"></i> Nuevo servicio
+  </a>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle bg-white shadow-sm rounded">
+    <thead class="table-light">
+      <tr>
+        <th style="width:60px;"></th>
+        <th>Nombre</th>
+        <th class="text-center d-none d-md-table-cell">Duración</th>
+        <th class="text-end">Precio</th>
+        <th class="text-center d-none d-md-table-cell">Web</th>
+        <th class="text-center d-none d-md-table-cell">Activo</th>
+        <th class="text-end"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in servicios %}
+        <tr>
+          <td>
+            {% if s.imagen %}
+              <img src="{{ s.imagen.url }}"
+                   alt="{{ s.nombre }}"
+                   class="rounded shadow-sm"
+                   style="width:44px;height:44px;object-fit:cover;">
+            {% else %}
+              <div class="d-flex align-items-center justify-content-center rounded bg-light"
+                   style="width:44px;height:44px;">
+                <i class="bi bi-image text-muted"></i>
+              </div>
+            {% endif %}
+          </td>
+
+          <td>
+            <strong>{{ s.nombre }}</strong>
+            {% if s.descripcion %}
+              <div class="text-muted small">
+                {{ s.descripcion|truncatechars:70 }}
+              </div>
+            {% endif %}
+            {% if not s.agendable_web %}
+              <span class="badge bg-warning-subtle text-warning-emphasis mt-1">
+                Solo WhatsApp
+              </span>
+            {% endif %}
+          </td>
+
+          <td class="text-center d-none d-md-table-cell">
+            {{ s.duracion_minutos }} min
+          </td>
+
+          <td class="text-end fw-semibold" style="color:#005a8c; font-family: 'Fraunces', serif;">
+            {{ s.precio_usd }} USD
+          </td>
+
+          <td class="text-center d-none d-md-table-cell">
+            {% if s.agendable_web %}
+              <i class="bi bi-check-circle text-success"></i>
+            {% else %}
+              <i class="bi bi-x-circle text-muted"></i>
+            {% endif %}
+          </td>
+
+          <td class="text-center d-none d-md-table-cell">
+            {% if s.activo %}
+              <span class="badge bg-success">Sí</span>
+            {% else %}
+              <span class="badge bg-secondary">No</span>
+            {% endif %}
+          </td>
+
+          <td class="text-end text-nowrap">
+            <a href="{% url 'panel:servicios_editar' s.pk %}"
+               class="btn btn-sm btn-outline-primary" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'panel:servicios_eliminar' s.pk %}"
+               class="btn btn-sm btn-outline-danger" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            No hay servicios creados.
+            <a href="{% url 'panel:servicios_crear' %}" class="ms-2">
+              Crear el primero
+            </a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

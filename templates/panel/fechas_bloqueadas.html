@@ -1,0 +1,84 @@
+{% extends 'panel/_base_panel.html' %}
+{% block title %}Fechas bloqueadas{% endblock %}
+
+{% block panel_content %}
+<h1 class="h4 mb-3">Fechas bloqueadas</h1>
+<p class="text-muted small">
+  Bloquee días completos o solo la mañana / tarde de una fecha concreta.
+</p>
+
+<div class="card card-soft shadow-sm mb-4">
+  <div class="card-body">
+    <h2 class="h6 text-uppercase text-muted mb-3">Bloquear una fecha</h2>
+    <form method="post" class="row g-2 align-items-end">
+      {% csrf_token %}
+      <div class="col-md-4">
+        <label for="fecha" class="form-label small fw-semibold">Fecha</label>
+        <input type="date" lang="es" name="fecha" id="fecha" class="form-control" required>
+      </div>
+      <div class="col-md-3">
+        <label for="seccion" class="form-label small fw-semibold">Sección</label>
+        <select name="seccion" id="seccion" class="form-select">
+          {% for v, label in secciones %}
+            <option value="{{ v }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label for="motivo" class="form-label small fw-semibold">
+          Motivo <span class="text-muted">(opcional)</span>
+        </label>
+        <input type="text" name="motivo" id="motivo" class="form-control"
+               placeholder="Ej. Feriado, mantenimiento…">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-warning w-100">
+          <i class="bi bi-slash-circle"></i> Bloquear
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<h2 class="h6 text-uppercase text-muted mb-2">Fechas bloqueadas activas</h2>
+<div class="table-responsive">
+  <table class="table table-hover align-middle bg-white shadow-sm rounded">
+    <thead class="table-light">
+      <tr>
+        <th>Fecha</th>
+        <th>Sección</th>
+        <th>Motivo</th>
+        <th class="text-end"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in fechas %}
+        <tr>
+          <td><strong>{{ f.fecha|date:"d/m/Y" }}</strong></td>
+          <td>
+            <span class="badge
+              {% if f.seccion == 'completo' %}bg-warning text-dark
+              {% elif f.seccion == 'manana' %}bg-info text-dark
+              {% else %}bg-primary{% endif %}">
+              {{ f.get_seccion_display }}
+            </span>
+          </td>
+          <td class="text-muted">{{ f.motivo|default:"—" }}</td>
+          <td class="text-end">
+            <form method="post" action="{% url 'panel:desbloquear_fecha' f.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-x-lg"></i> Desbloquear
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-center text-muted py-4">
+          No hay fechas bloqueadas.
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

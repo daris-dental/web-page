@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}Detalle de consulta{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-11">
+
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+      <div>
+        <h1 class="h4 mb-1">{{ nombre }} </h1>
+        <p class="text-muted small mb-0">
+          {{ consulta.fecha|date:"l d/m/Y" }} · {{ consulta.fecha|date:"H:i" }}
+        </p>
+      </div>
+      <span class="badge
+        {% if consulta.estado == 'pendiente' %}bg-warning text-dark
+        {% elif consulta.estado == 'confirmada' %}bg-info text-dark
+        {% elif consulta.estado == 'realizada' %}bg-success
+        {% else %}bg-secondary{% endif %} fs-6">
+        {{ consulta.get_estado_display }}
+      </span>
+    </div>
+
+    <div class="row g-4">
+
+      {# ============ Columna izquierda: datos ============ #}
+      <div class="col-lg-7">
+        <div class="card card-soft shadow-sm h-100">
+          <div class="card-body p-4">
+
+            <h2 class="h6 text-uppercase text-muted mb-3">
+              <i class="bi bi-clipboard2-pulse text-primary"></i> Datos de la {{ consulta.servicio.nombre }}
+            </h2>
+
+            <div class="row g-3 mb-4">
+              <div class="col-sm-4">
+                <div class="border rounded-3 p-3 bg-light h-100">
+                  <div class="text-muted small">Fecha</div>
+                  <div class="fw-semibold">{{ consulta.fecha|date:"d/m/Y" }}</div>
+                  <div class="text-muted small">{{ consulta.fecha|date:"H:i" }}</div>
+                </div>
+              </div>
+              <div class="col-sm-4">
+                <div class="border rounded-3 p-3 bg-light h-100">
+                  <div class="text-muted small">Duración</div>
+                  <div class="fw-semibold">{{ consulta.duracion_display }}</div>
+                </div>
+              </div>
+              <div class="col-sm-4">
+                <div class="border rounded-3 p-3 bg-light h-100">
+                  <div class="text-muted small">Precio</div>
+                  <div class="fw-semibold">{{ consulta.precio_usd }} USD</div>
+                </div>
+              </div>
+            </div>
+
+            <hr>
+
+            <h3 class="h6 text-uppercase text-muted mt-4 mb-2">Notas</h3>
+            <p class="text-muted small mb-3">{{ consulta.notas|default:"—"|linebreaksbr }}</p>
+
+            <h3 class="h6 text-uppercase text-muted mt-4 mb-2">Tratamiento</h3>
+            <p class="text-muted small mb-3">{{ consulta.tratamiento|default:"—"|linebreaksbr }}</p>
+
+            <h3 class="h6 text-uppercase text-muted mt-4 mb-2">Medicación</h3>
+            <p class="text-muted small mb-0">{{ consulta.medicacion|default:"—"|linebreaksbr }}</p>
+            {% if consulta.proxima_visita %}
+  <h3 class="h6 text-uppercase text-muted mt-4 mb-2">Próxima visita sugerida</h3>
+  <p class="mb-0">
+    <span class="badge bg-info text-dark">
+      <i class="bi bi-calendar-event"></i>
+      {{ consulta.proxima_visita|date:"l d/m/Y" }}
+    </span>
+  </p>
+{% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# ============ Columna derecha: imágenes ============ #}
+      <div class="col-lg-5">
+        <div class="card card-soft shadow-sm h-100">
+          <div class="card-body p-4">
+
+            <h2 class="h6 text-uppercase text-muted mb-3">
+              <i class="bi bi-images text-primary"></i> Imágenes
+            </h2>
+
+            {% if consulta.imagenes.all %}
+              <div class="row g-2">
+                {% for img in consulta.imagenes.all %}
+                  <div class="col-6">
+                    <button type="button"
+                            class="btn p-0 border-0 w-100 text-start btn-abrir-imagen"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalImagen"
+                            data-img-src="{{ img.imagen.url }}"
+                            data-img-alt="{{ img.descripcion|default:'Imagen de consulta' }}"
+                            data-img-desc="{{ img.descripcion|default:'' }}">
+                      <div class="position-relative overflow-hidden rounded-3 shadow-sm"
+                           style="aspect-ratio:1;">
+                        <img src="{{ img.imagen.url }}"
+                             alt="{{ img.descripcion|default:'Imagen de consulta' }}"
+                             class="w-100 h-100"
+                             style="object-fit:cover;">
+                      </div>
+                      {% if img.descripcion %}
+                        <div class="text-muted small mt-1 text-truncate"
+                             title="{{ img.descripcion }}">
+                          {{ img.descripcion }}
+                        </div>
+                      {% endif %}
+                    </button>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center py-5">
+                <i class="bi bi-image display-4 text-muted opacity-50"></i>
+                <p class="text-muted small mt-3 mb-0">
+                  No hay imágenes adjuntas a esta consulta.
+                </p>
+              </div>
+            {% endif %}
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    {# ============ Acciones ============ #}
+    <div class="d-flex gap-2 mt-4 flex-wrap">
+      <a href="{% url 'consultations:mis_consultas' %}"
+         class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+      </a>
+
+      {# Contactar por WhatsApp con contexto de la consulta #}
+      <a href="https://wa.me/{{ whatsapp_number|default:'5354783902' }}?text={{ wa_text|urlencode }}"
+         target="_blank" rel="noopener"
+         class="btn btn-success">
+        <i class="bi bi-whatsapp"></i> Consultar por WhatsApp
+      </a>
+
+      {% if consulta.estado == 'pendiente' or consulta.estado == 'confirmada' %}
+        <a href="{% url 'consultations:cancelar' consulta.pk %}"
+           class="btn btn-outline-danger">
+          <i class="bi bi-x-circle"></i> Cancelar consulta
+        </a>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+{# ============ Modal para ver imagen ============ #}
+<div class="modal fade" id="modalImagen" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title text-muted small text-uppercase" id="modalImagenDesc">
+          Imagen de consulta
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center pt-2">
+        <img id="modalImagenImg" src="" alt=""
+             class="img-fluid rounded-3 shadow-sm"
+             style="max-height: 75vh; object-fit: contain;">
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Pasar datos de la imagen al modal
+  document.querySelectorAll('.btn-abrir-imagen').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const src = btn.dataset.imgSrc;
+      const alt = btn.dataset.imgAlt || '';
+      const desc = btn.dataset.imgDesc || '';
+
+      document.getElementById('modalImagenImg').src = src;
+      document.getElementById('modalImagenImg').alt = alt;
+      document.getElementById('modalImagenDesc').textContent =
+        desc || 'Imagen de consulta';
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends 'panel/_base_panel.html' %}
+{% block title %}{{ accion }} artículo{% endblock %}
+
+{% block panel_content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card card-soft shadow-sm">
+      <div class="card-body p-4 p-md-5">
+        <h1 class="h4 mb-4">{{ accion }} artículo</h1>
+
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label for="{{ form.nombre.id_for_label }}" class="form-label fw-semibold">
+              {{ form.nombre.label }} <span class="text-danger">*</span>
+            </label>
+            {{ form.nombre }}
+            {% for e in form.nombre.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.descripcion.id_for_label }}" class="form-label fw-semibold">
+              {{ form.descripcion.label }}
+            </label>
+            {{ form.descripcion }}
+            {% for e in form.descripcion.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="{{ form.precio_usd.id_for_label }}" class="form-label fw-semibold">
+                {{ form.precio_usd.label }} <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                {{ form.precio_usd }}
+                <span class="input-group-text">USD</span>
+              </div>
+              {% for e in form.precio_usd.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label for="{{ form.unidad.id_for_label }}" class="form-label fw-semibold">
+                {{ form.unidad.label }}
+              </label>
+              {{ form.unidad }}
+              {% if form.unidad.help_text %}<div class="form-text">{{ form.unidad.help_text }}</div>{% endif %}
+              {% for e in form.unidad.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.imagen.id_for_label }}" class="form-label fw-semibold">
+              {{ form.imagen.label }}
+            </label>
+            {{ form.imagen }}
+            {% if form.instance.imagen %}
+              <div class="mt-2">
+                <img src="{{ form.instance.imagen.url }}" alt="{{ form.instance.nombre }}"
+                     class="rounded shadow-sm" style="max-height:120px;">
+              </div>
+            {% endif %}
+            {% for e in form.imagen.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+
+          <hr class="my-4">
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="{{ form.estado.id_for_label }}" class="form-label fw-semibold">
+                {{ form.estado.label }}
+              </label>
+              {{ form.estado }}
+              {% for e in form.estado.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <div class="border rounded-3 p-3 bg-light h-100">
+                <div class="form-check form-switch">
+                  {{ form.activo }}
+                  <label class="form-check-label fw-semibold ms-2"
+                         for="{{ form.activo.id_for_label }}">
+                    {{ form.activo.label }}
+                  </label>
+                </div>
+                {% if form.activo.help_text %}
+                  <div class="form-text ms-5">{{ form.activo.help_text }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check2"></i> Guardar
+            </button>
+            <a href="{% url 'panel:articulos_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

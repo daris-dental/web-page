@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row g-4">
+  <aside class="col-lg-3">
+    <div class="list-group shadow-sm">
+      <a class="list-group-item list-group-item-action {% if panel_active == 'home' %}active{% endif %}"
+         href="{% url 'panel:home' %}">
+        <i class="bi bi-speedometer2 me-2"></i> Inicio
+      </a>
+      <a class="list-group-item list-group-item-action {% if panel_active == 'servicios' %}active{% endif %}"
+         href="{% url 'panel:servicios_lista' %}">
+        <i class="bi bi-tags me-2"></i> Servicios
+      </a>
+      <a class="list-group-item list-group-item-action {% if panel_active == 'pacientes' %}active{% endif %}"
+         href="{% url 'panel:pacientes_lista' %}">
+        <i class="bi bi-people me-2"></i> Pacientes
+      </a>
+      <a class="list-group-item list-group-item-action {% if panel_active == 'consultas' %}active{% endif %}"
+         href="{% url 'panel:consultas_lista' %}">
+        <i class="bi bi-calendar-week me-2"></i> Consultas
+      </a>
+      <a class="list-group-item list-group-item-action {% if panel_active == 'fechas' %}active{% endif %}"
+   href="{% url 'panel:fechas_bloqueadas' %}">
+  <i class="bi bi-slash-circle me-2"></i> Fechas bloqueadas
+</a>
+<a class="list-group-item list-group-item-action {% if panel_active == 'articulos' %}active{% endif %}"
+   href="{% url 'panel:articulos_lista' %}">
+  <i class="bi bi-box-seam me-2"></i> Artículos
+</a>
+    </div>
+  </aside>
+
+  <section class="col-lg-9">
+    {% block panel_content %}{% endblock %}
+  </section>
+</div>
+{% endblock %}

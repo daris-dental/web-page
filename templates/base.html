@@ -1,0 +1,183 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es-CU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Dari's Dental{% endblock %}</title>
+
+  <!-- Bootstrap 5.3 -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous">
+  <!-- Bootstrap Icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <style>
+    body { padding-bottom: 3rem; }
+    .navbar-brand { font-weight: 600; letter-spacing: .3px; }
+    .card-soft { border: 1px solid #e5e7eb; border-radius: .9rem; }
+    .badge-estado { font-weight: 500; }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <div class="container">
+   <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'landing' %}">
+  <img src="{% static 'landing/logo.png' %}"
+       alt="Dari's Dental"
+       style="height:40px;width:auto;object-fit:contain;"
+       class="d-inline-block align-text-top">
+</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#mainNav" aria-controls="mainNav"
+            aria-expanded="false" aria-label="Alternar navegación">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        {% if user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link link-body-emphasis" href="{% url 'services:lista' %}">
+              <i class="bi bi-list-stars"></i> Servicios
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link link-body-emphasis" href="{% url 'consultations:agendar' %}">
+              <i class="bi bi-calendar-plus"></i> Agendar
+            </a>
+          </li>
+          {% if user.is_staff %}
+            <li class="nav-item">
+              <a class="nav-link link-body-emphasis" href="{% url 'panel:home' %}">
+                <i class="bi bi-speedometer2"></i> Panel
+              </a>
+            </li>
+          {% endif %}
+        {% endif %}
+      </ul>
+
+      <ul class="navbar-nav">
+        {% if user.is_authenticated %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2"
+               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-person-circle fs-5"></i>
+              {{ user.get_full_name|default:user.username }}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              <li class="dropdown-header small text-uppercase text-muted">
+                Mi cuenta
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'patients:perfil' %}">
+                  <i class="bi bi-person"></i> Mi perfil
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'patients:paciente_form' %}">
+                  <i class="bi bi-clipboard2-pulse"></i> Datos clínicos
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'consultations:mis_consultas' %}">
+                  <i class="bi bi-calendar-check"></i> Mis consultas
+                </a>
+              </li>
+
+              {% if user.is_staff %}
+                <li><hr class="dropdown-divider"></li>
+                <li class="dropdown-header small text-uppercase text-muted">
+                  Administración
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'panel:home' %}">
+                    <i class="bi bi-speedometer2"></i> Panel
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'panel:servicios_lista' %}">
+                    <i class="bi bi-tags"></i> Servicios
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'panel:pacientes_lista' %}">
+                    <i class="bi bi-people"></i> Pacientes
+                  </a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="{% url 'panel:consultas_lista' %}">
+                    <i class="bi bi-calendar-week"></i> Consultas
+                  </a>
+                </li>
+                <li>
+  <a class="dropdown-item" href="{% url 'panel:fechas_bloqueadas' %}">
+    <i class="bi bi-slash-circle"></i> Fechas bloqueadas
+  </a>
+</li>
+              {% endif %}
+
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item" href="{% url 'accounts:cambiar_password' %}">
+                  <i class="bi bi-key"></i> Cambiar contraseña
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}">
+                  <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                </a>
+              </li>
+            </ul>
+          </li>
+        {% else %}
+        <li class="nav-item">
+            <a class="nav-link link-body-emphasis" href="{% url 'services:lista' %}">
+              <i class="bi bi-list-stars"></i> Servicios
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link link-body-emphasis" href="{% url 'accounts:login' %}">Entrar</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link link-body-emphasis" href="{% url 'accounts:registro' %}">Registrarse</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<main class="{% block main_class %}container my-4{% endblock %}">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="container text-center text-muted py-4 small">
+  © {% now "Y" %} Dari's Dental · Dr. Torres
+</footer>
+
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+  crossorigin="anonymous"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

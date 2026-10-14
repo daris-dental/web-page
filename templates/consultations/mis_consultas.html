@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Mis consultas{% endblock %}
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Mis consultas</h1>
+    <div class="float-end">
+    <a href="{% url 'landing' %}"
+               class="btn btn-outline-secondary me-3">Volver</a>
+    <a href="{% url 'consultations:agendar' %}" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> Nueva consulta
+    </a>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle bg-white shadow-sm rounded">
+      <thead class="table-light">
+        <tr>
+          <th>Fecha</th>
+          <th>Servicio</th>
+          <th>Duración</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in consultas %}
+          <tr>
+            <td>{{ c.fecha|date:"d/m/Y H:i" }}</td>
+            <td>{{ c.servicio.nombre }}</td>
+            <td>{{ c.duracion_minutos }} min</td>
+            <td>
+              {% if c.estado == 'pendiente' %}
+                <span class="badge bg-warning text-dark badge-estado">Pendiente</span>
+              {% elif c.estado == 'confirmada' %}
+                <span class="badge bg-info text-dark badge-estado">Confirmada</span>
+              {% elif c.estado == 'realizada' %}
+                <span class="badge bg-success badge-estado">Realizada</span>
+              {% else %}
+                <span class="badge bg-secondary badge-estado">Cancelada</span>
+              {% endif %}
+            </td>
+            
+              <td class="text-end text-nowrap">
+  <a href="{% url 'consultations:detalle' c.pk %}"
+     class="btn btn-sm btn-outline-primary">Ver</a>
+
+  {% if c.estado == 'pendiente' or c.estado == 'confirmada' %}
+    {% if c.fecha > now %}
+      <a href="{% url 'consultations:cancelar' c.pk %}"
+         class="btn btn-sm btn-outline-danger">
+        <i class="bi bi-x-lg"></i> Cancelar
+      </a>
+    {% endif %}
+  {% endif %}
+</td>
+           
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">
+            No tiene consultas registradas.
+          </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

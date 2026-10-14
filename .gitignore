@@ -1,0 +1,9 @@
+.env
+venv
+db.sqlite3
+daris-dental-main
+daris-dental-main.zip
+Requerimiento.docx
+scripts
+credentials.json
+token.json

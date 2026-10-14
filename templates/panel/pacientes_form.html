@@ -1,0 +1,29 @@
+{% extends 'panel/_base_panel.html' %}
+{% block title %}Editar paciente{% endblock %}
+
+{% block panel_content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div class="card card-soft shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-3">Editar paciente</h1>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <h2 class="h6 text-muted text-uppercase mt-2 mb-3">Datos personales</h2>
+          {% include '_form_fields.html' with form=form_u %}
+          <hr>
+          <h2 class="h6 text-muted text-uppercase mt-2 mb-3">Datos clínicos</h2>
+          {% include '_form_fields.html' with form=form_p %}
+          <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-primary">
+              <i class="bi bi-check2"></i> Guardar
+            </button>
+            <a href="{% url 'panel:pacientes_detalle' paciente.pk %}"
+               class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Servicios{% endblock %}
+{% block content %}
+  <h1 class="h3 mb-4">Servicios disponibles<a href="{% url 'landing' %}"
+         class="btn btn-outline-secondary float-end">
+        <i class="bi bi-arrow-left"></i> Volver
+      </a></h1>
+  <div class="row g-3">
+    {% for s in servicios %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card card-soft h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title mb-1">{{ s.nombre }}</h5>
+            {% if s.imagen %}
+  <img src="{{ s.imagen.url }}" alt="{{ s.nombre }}"
+       class="card-img-top" style="height:160px;object-fit:cover;">
+{% endif %}
+            <p class="text-muted small mb-2">
+              <i class="bi bi-clock"></i> {{ s.duracion_display }} ·
+              <span class="badge bg-success-subtle text-success-emphasis">
+                {{ s.precio_usd }} USD
+              </span>
+              
+            </p>
+            <p class="card-text small">{{ s.descripcion|default:"—" }}</p>
+          </div>
+          <div class="card-footer bg-white border-0">
+            {% if user.is_authenticated and s.agendable_web %}
+                <a href="{% url 'consultations:agendar' %}?servicio={{ s.pk }}"
+                   class="btn w-100 fw-semibold text-white"
+                   style="background: linear-gradient(90deg,#0077b6,#005a8c);">
+                  <i class="bi bi-calendar-plus me-1"></i> Agendar
+                </a>
+              {% elif user.is_authenticated %}
+                <a href="https://wa.me/{{ whatsapp_number }}?text=Hola%2C%20quiero%20agendar%20{{ wa_text_servicio|default:''|urlencode }}{{ s.nombre|urlencode }}"
+                   target="_blank" rel="noopener"
+                   class="btn btn-outline-primary w-100 fw-semibold">
+                  <i class="bi bi-whatsapp me-1"></i> Agendar por Whatsapp
+                </a>
+              {% else %}
+                <a href="https://wa.me/{{ whatsapp_number }}?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20{{ s.nombre|urlencode }}"
+                   target="_blank" rel="noopener"
+                   class="btn btn-outline-primary w-100 fw-semibold">
+                  <i class="bi bi-whatsapp me-1"></i> Consultar
+                </a>
+              {% endif %}
+              
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-muted">No hay servicios disponibles.</p>
+    {% endfor %}
+  </div>
+{% endblock %}

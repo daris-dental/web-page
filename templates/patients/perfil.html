@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block title %}Mi perfil{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <i class="bi bi-person-circle display-6 text-primary"></i>
+      <div>
+        <h1 class="h4 mb-0">Mi perfil</h1>
+        <p class="text-muted small mb-0">
+          Información de su cuenta y datos clínicos.
+        </p>
+      </div>
+    </div>
+
+    <div class="row g-3">
+
+      {# ---------- Columna: cuenta ---------- #}
+      <div class="col-md-6">
+        <div class="card card-soft shadow-sm h-100">
+          <div class="card-body p-4">
+            <h2 class="h6 text-uppercase text-muted mb-3">
+              <i class="bi bi-person-badge text-primary"></i> Cuenta
+            </h2>
+
+            <dl class="row mb-0 small">
+              <dt class="col-5 text-muted">Nombre</dt>
+              <dd class="col-7 fw-semibold">{{ user.get_full_name|default:"—" }}</dd>
+
+              <dt class="col-5 text-muted">Usuario</dt>
+              <dd class="col-7">{{ user.username }}</dd>
+
+              <dt class="col-5 text-muted">Correo</dt>
+              <dd class="col-7">{{ user.email }}</dd>
+
+              <dt class="col-5 text-muted">Teléfono</dt>
+              <dd class="col-7">{{ user.telefono|default:"—" }}</dd>
+
+              <dt class="col-5 text-muted">Edad</dt>
+              <dd class="col-7 mb-0">{{ user.edad|default:"—" }}</dd>
+            </dl>
+
+            <div class="d-grid gap-2 mt-4">
+              <a href="{% url 'accounts:cambiar_password' %}"
+                 class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-key"></i> Cambiar contraseña
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ---------- Columna: paciente ---------- #}
+      <div class="col-md-6">
+        <div class="card card-soft shadow-sm h-100">
+          <div class="card-body p-4">
+            <h2 class="h6 text-uppercase text-muted mb-3">
+              <i class="bi bi-clipboard2-pulse text-primary"></i> Datos clínicos
+            </h2>
+
+            {% if paciente %}
+              <dl class="row mb-0 small">
+                <dt class="col-5 text-muted">Alergias</dt>
+                <dd class="col-7">
+                  {{ paciente.alergias|default:"—"|linebreaksbr }}
+                </dd>
+
+                <dt class="col-5 text-muted">Medicación</dt>
+                <dd class="col-7">
+                  {{ paciente.medicacion|default:"—"|linebreaksbr }}
+                </dd>
+
+                <dt class="col-5 text-muted">País</dt>
+                <dd class="col-7 mb-0">
+                  {{ paciente.get_pais_display|default:"—" }}
+                </dd>
+              </dl>
+
+              <div class="d-grid gap-2 mt-5">
+                <a href="{% url 'patients:paciente_form' %}"
+                   class="btn btn-outline-primary btn-sm mt-4">
+                  <i class="bi bi-pencil"></i> Editar datos clínicos
+                </a>
+              </div>
+            {% else %}
+              <p class="text-muted small">
+                Aún no ha completado sus datos clínicos.
+              </p>
+              <div class="d-grid gap-2 mt-4">
+                <a href="{% url 'patients:paciente_form' %}"
+                   class="btn btn-primary btn-sm mt-5">
+                  <i class="bi bi-plus-circle"></i> Completar datos
+                </a>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    {# ---------- Consultas recientes ---------- #}
+    <div class="card card-soft shadow-sm mt-3">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h6 text-uppercase text-muted mb-0">
+            <i class="bi bi-calendar-check text-primary"></i> Consultas recientes
+          </h2>
+          <a href="{% url 'consultations:mis_consultas' %}"
+             class="btn btn-sm btn-outline-primary">Ver todas</a>
+        </div>
+
+        {% if user.paciente.consultas.all %}
+          <ul class="list-group list-group-flush small">
+            {% for c in user.paciente.consultas.all|slice:":3" %}
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <div>
+                  <strong>{{ c.servicio.nombre }}</strong>
+                  <div class="text-muted">
+                    {{ c.fecha|date:"d/m/Y H:i" }} · {{ c.get_estado_display }}
+                  </div>
+                </div>
+                <a href="{% url 'consultations:detalle' c.pk %}"
+                   class="btn btn-sm btn-outline-secondary">Ver</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted small mb-0">
+            Aún no tiene consultas registradas.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

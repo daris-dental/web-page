@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+{% block title %}Agendar consulta{% endblock %}
+
+{% block extra_head %}
+<style>
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-head {
+    text-align: center;
+    font-weight: 600;
+    font-size: .75rem;
+    color: #64748b;
+    padding: .35rem 0;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    border: 1px solid #e5e7eb;
+    border-radius: .5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    cursor: pointer;
+    background: #fff;
+    transition: all .15s;
+    padding: 2px;
+    user-select: none;
+  }
+  .cal-day:hover:not(.disabled) {
+    background: #e0f2fe;
+    border-color: #0ea5e9;
+  }
+  .cal-day.disabled {
+    color: #cbd5e1;
+    cursor: not-allowed;
+    background: #f8fafc;
+  }
+  .cal-day.selected {
+    background: #0ea5e9;
+    color: #fff;
+    border-color: #0284c7;
+  }
+  .cal-day .day-num { font-weight: 600; }
+  .cal-day .day-slots {
+    font-size: .6rem;
+    color: #0ea5e9;
+    line-height: 1.1;
+    text-align: center;
+  }
+  .cal-day.selected .day-slots { color: #fff; }
+  .slot-btn.active {
+    background: #0ea5e9;
+    color: #fff;
+    border-color: #0284c7;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="card card-soft shadow-sm">
+      <div class="card-body p-4 p-md-5">
+
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <i class="bi bi-calendar-plus display-6 text-primary"></i>
+          <div>
+            <h1 class="h4 mb-0">Agendar consulta</h1>
+            <p class="text-muted small mb-0">
+              Elija el servicio y luego un día y una sección del calendario.
+            </p>
+          </div>
+        </div>
+
+        <div class="alert alert-info d-flex gap-2 small">
+          <i class="bi bi-info-circle mt-1"></i>
+          <div>
+            <strong>Reglas:</strong>
+            <ul class="mb-0 ps-3">
+              <li>Martes a sábado.</li>
+              <li>Al menos <strong>48 horas</strong> de antelación.</li>
+              <li>Una consulta activa a la vez.</li>
+              <li>Al menos <strong>15 días</strong> entre consultas.</li>
+            </ul>
+          </div>
+        </div>
+
+        <form method="post" novalidate id="agenda-form">
+          {% csrf_token %}
+
+          {# PASO 1: SERVICIO #}
+          <div class="mb-4">
+            <label for="{{ form.servicio.id_for_label }}" class="form-label fw-semibold">
+              <span class="badge bg-primary me-1">1</span> Servicio
+            </label>
+            {{ form.servicio }}
+            {% for error in form.servicio.errors %}
+              <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          {# PASO 2: CALENDARIO #}
+          <div id="step-disponibilidad" class="d-none">
+            <label class="form-label fw-semibold">
+              <span class="badge bg-primary me-1">2</span> Día y sección
+            </label>
+
+            <div id="cargando" class="text-muted small mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              Cargando disponibilidad…
+            </div>
+
+            <div id="sin-disponibilidad" class="alert alert-warning d-none small">
+              No hay turnos disponibles en los próximos 30 días.
+            </div>
+
+            <div id="calendar-wrap" class="border rounded-3 p-3 bg-white d-none">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <button type="button" id="cal-prev" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+                <h6 class="mb-0" id="cal-title">—</h6>
+                <button type="button" id="cal-next" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
+
+              <div class="calendar-grid" id="calendar-grid"></div>
+
+              <div class="text-muted small mt-2 text-center">
+                <span class="text-primary fw-semibold">M</span> = Mañana ·
+                <span class="text-primary fw-semibold">T</span> = Tarde
+              </div>
+            </div>
+
+            <div id="slot-panel" class="mt-3 d-none">
+              <h6 class="mb-2">
+                Secciones disponibles para
+                <span class="text-primary" id="slot-day-label"></span>
+              </h6>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button"
+                        class="btn btn-outline-primary slot-btn"
+                        data-seccion="manana">
+                  <i class="bi bi-sun"></i>
+                  Mañana — <strong class="slot-hora"></strong>
+                </button>
+                <button type="button"
+                        class="btn btn-outline-primary slot-btn"
+                        data-seccion="tarde">
+                  <i class="bi bi-cloud-sun"></i>
+                  Tarde — <strong class="slot-hora"></strong>
+                </button>
+              </div>
+            </div>
+
+            <div id="resumen-seleccion"
+                 class="alert alert-success d-none mt-3 mb-0 small">
+              <i class="bi bi-check2-circle"></i>
+              Seleccionado: <strong id="resumen-texto"></strong>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label for="{{ form.notas.id_for_label }}" class="form-label fw-semibold">
+              Notas para el doctor <span class="text-muted small">(opcional)</span>
+            </label>
+            {{ form.notas }}
+          </div>
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger mt-3">
+              {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}
+            </div>
+          {% endif %}
+
+          {# Campos enviados por el calendario (fuera del form) #}
+          <input type="hidden" name="fecha" id="id_fecha">
+          <input type="hidden" name="seccion" id="id_seccion">
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" id="btn-submit"
+                    class="btn btn-primary" disabled>
+              <i class="bi bi-calendar-check"></i> Confirmar cita
+            </button>
+            <a href="{% url 'consultations:mis_consultas' %}"
+               class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="config"
+     data-url-disponibilidad="{% url 'consultations:disponibilidad' 0 %}"
+     hidden></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const config     = document.getElementById('config');
+  const urlTpl     = config.dataset.urlDisponibilidad;
+  const select     = document.getElementById('id_servicio');
+  const step2      = document.getElementById('step-disponibilidad');
+  const cargando   = document.getElementById('cargando');
+  const sinDisp    = document.getElementById('sin-disponibilidad');
+  const calWrap    = document.getElementById('calendar-wrap');
+  const calGrid    = document.getElementById('calendar-grid');
+  const calTitle   = document.getElementById('cal-title');
+  const calPrev    = document.getElementById('cal-prev');
+  const calNext    = document.getElementById('cal-next');
+  const slotPanel  = document.getElementById('slot-panel');
+  const slotLabel  = document.getElementById('slot-day-label');
+  const slotBtns   = document.querySelectorAll('.slot-btn');
+  const hiddenFec  = document.getElementById('id_fecha');
+  const hiddenSec  = document.getElementById('id_seccion');
+  const btnSubmit  = document.getElementById('btn-submit');
+  const resumen    = document.getElementById('resumen-seleccion');
+  const resumenTx  = document.getElementById('resumen-texto');
+
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
+                 'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const DIAS_CORTOS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
+  let disponibilidad = {};
+  let mesMostrado = null;
+  let diaSeleccionado = null;
+  let seccionSeleccionada = null;
+
+  function reset() {
+    disponibilidad = {};
+    diaSeleccionado = null;
+    seccionSeleccionada = null;
+    hiddenFec.value = '';
+    hiddenSec.value = '';
+    slotPanel.classList.add('d-none');
+    resumen.classList.add('d-none');
+    btnSubmit.disabled = true;
+    calWrap.classList.add('d-none');
+  }
+
+  function ymd(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function renderCalendar() {
+    if (!mesMostrado) return;
+    const year  = mesMostrado.getFullYear();
+    const month = mesMostrado.getMonth();
+
+    calTitle.textContent = `${MESES[month]} ${year}`;
+
+    let html = '';
+    DIAS_CORTOS.forEach(d => { html += `<div class="cal-head">${d}</div>`; });
+
+    const first = new Date(year, month, 1);
+    let offset = first.getDay() - 1;
+    if (offset < 0) offset = 6;
+    for (let i = 0; i < offset; i++) html += '<div></div>';
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const fecha = new Date(year, month, d);
+      const iso = ymd(fecha);
+      const disp = disponibilidad[iso];
+      const esPasado = fecha < hoy;
+      const sinDispo = !disp || (!disp.manana && !disp.tarde);
+      const disabled = esPasado || sinDispo;
+
+      const clases = ['cal-day'];
+      if (disabled) clases.push('disabled');
+      if (diaSeleccionado === iso) clases.push('selected');
+
+      let slotsInfo = '';
+      if (disp) {
+        const partes = [];
+        if (disp.manana) partes.push(`M ${disp.manana}`);
+        if (disp.tarde)  partes.push(`T ${disp.tarde}`);
+        slotsInfo = `<div class="day-slots">${partes.join(' · ')}</div>`;
+      }
+
+      html += `<div class="${clases.join(' ')}" data-fecha="${iso}">
+        <div class="day-num">${d}</div>
+        ${slotsInfo}
+      </div>`;
+    }
+
+    calGrid.innerHTML = html;
+  }
+
+  function mostrarSlots() {
+    if (!diaSeleccionado) return;
+    const disp = disponibilidad[diaSeleccionado];
+    if (!disp) return;
+
+    slotLabel.textContent = disp.label || diaSeleccionado;
+
+    slotBtns.forEach(btn => {
+      const sec = btn.dataset.seccion;
+      const horaEl = btn.querySelector('.slot-hora');
+      if (disp[sec]) {
+        btn.classList.remove('d-none');
+        btn.disabled = false;
+        horaEl.textContent = disp[sec];
+        btn.classList.toggle('active', seccionSeleccionada === sec);
+      } else {
+        btn.classList.add('d-none');
+      }
+    });
+
+    slotPanel.classList.remove('d-none');
+  }
+
+  function actualizarResumen() {
+    if (!diaSeleccionado || !seccionSeleccionada) {
+      resumen.classList.add('d-none');
+      btnSubmit.disabled = true;
+      return;
+    }
+    const disp = disponibilidad[diaSeleccionado];
+    const secTxt = seccionSeleccionada === 'manana' ? 'Mañana' : 'Tarde';
+    resumenTx.textContent = `${disp.label} · ${secTxt} · ${disp[seccionSeleccionada]}`;
+    resumen.classList.remove('d-none');
+    btnSubmit.disabled = false;
+  }
+
+  async function cargarDisponibilidad(servicioId) {
+    reset();
+    if (!servicioId) { step2.classList.add('d-none'); return; }
+
+    step2.classList.remove('d-none');
+    cargando.classList.remove('d-none');
+    sinDisp.classList.add('d-none');
+
+    try {
+      const url = urlTpl.replace('/0/', '/' + servicioId + '/');
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      cargando.classList.add('d-none');
+
+      if (!data.dias || data.dias.length === 0) {
+        sinDisp.classList.remove('d-none');
+        return;
+      }
+
+      disponibilidad = {};
+      data.dias.forEach(d => { disponibilidad[d.fecha] = d; });
+
+      const [y, m] = data.dias[0].fecha.split('-').map(Number);
+      mesMostrado = new Date(y, m - 1, 1);
+
+      calWrap.classList.remove('d-none');
+      renderCalendar();
+    } catch (err) {
+      cargando.classList.add('d-none');
+      sinDisp.textContent = 'Error cargando la disponibilidad. Intente de nuevo.';
+      sinDisp.classList.remove('d-none');
+    }
+  }
+
+  select.addEventListener('change', () => cargarDisponibilidad(select.value));
+
+  calGrid.addEventListener('click', (e) => {
+    const celda = e.target.closest('.cal-day:not(.disabled)');
+    if (!celda) return;
+
+    diaSeleccionado = celda.dataset.fecha;
+    seccionSeleccionada = null;
+    hiddenFec.value = '';
+    hiddenSec.value = '';
+
+    calGrid.querySelectorAll('.cal-day').forEach(el => el.classList.remove('selected'));
+    celda.classList.add('selected');
+
+    mostrarSlots();
+    actualizarResumen();
+  });
+
+  slotBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      seccionSeleccionada = btn.dataset.seccion;
+      hiddenFec.value = diaSeleccionado;
+      hiddenSec.value = seccionSeleccionada;
+      slotBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      actualizarResumen();
+    });
+  });
+
+  calPrev.addEventListener('click', () => {
+    if (!mesMostrado) return;
+    mesMostrado = new Date(mesMostrado.getFullYear(), mesMostrado.getMonth() - 1, 1);
+    renderCalendar();
+  });
+
+  calNext.addEventListener('click', () => {
+    if (!mesMostrado) return;
+    mesMostrado = new Date(mesMostrado.getFullYear(), mesMostrado.getMonth() + 1, 1);
+    renderCalendar();
+  });
+
+    // Si el servicio viene preseleccionado por URL, cargar de una vez
+  const servicioPre = "{{ servicio_id_preseleccionado|escapejs }}";
+  if (select.value) {
+    cargarDisponibilidad(select.value);
+  } else if (servicioPre) {
+    select.value = servicioPre;
+    cargarDisponibilidad(servicioPre);
+  }
+})();
+</script>
+{% endblock %}

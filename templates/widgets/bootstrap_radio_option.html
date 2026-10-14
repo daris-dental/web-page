@@ -1,0 +1,8 @@
+<label class="btn btn-outline-primary btn-sm rounded-pill px-3 py-2 mb-0">
+  <input type="{{ widget.type }}"
+         name="{{ widget.name }}"
+         value="{{ widget.value }}"
+         class="d-none"
+         {% if widget.attrs.checked %}checked{% endif %}>
+  {{ widget.label }}
+</label>

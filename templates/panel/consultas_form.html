@@ -1,0 +1,714 @@
+{% extends 'panel/_base_panel.html' %}
+{% block title %}{{ accion }} consulta{% endblock %}
+
+{% block extra_head %}
+<style>
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-head { text-align:center; font-weight:600; font-size:.72rem; color:#64748b; padding:.35rem 0; }
+  .cal-day {
+    aspect-ratio: 1; border: 1px solid #e5e7eb; border-radius:.5rem;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:.78rem; cursor:pointer; background:#fff; transition:all .15s;
+    padding:2px; user-select:none;
+  }
+  .cal-day:hover:not(.disabled) { background:#e0f2fe; border-color:#0ea5e9; }
+  .cal-day.disabled { color:#cbd5e1; cursor:not-allowed; background:#f8fafc; }
+  .cal-day.selected { background:#0ea5e9; color:#fff; border-color:#0284c7; }
+  .cal-day .day-slots { font-size:.58rem; color:#0ea5e9; line-height:1.1; text-align:center; }
+  .cal-day.selected .day-slots { color:#fff; }
+  .slot-btn.active { background:#0ea5e9; color:#fff; border-color:#0284c7; }
+</style>
+{% endblock %}
+
+{% block panel_content %}
+<h1 class="h4 mb-3">{{ accion }} consulta</h1>
+
+{% if marcar == 'realizada' %}
+  <div class="alert alert-warning small">
+    <i class="bi bi-exclamation-triangle"></i>
+    Para marcar esta consulta como <strong>realizada</strong>, rellene
+    <strong>tratamiento</strong>.
+    El botón Guardar se activará cuando ambos tengan contenido.
+  </div>
+{% else %}
+  <div class="alert alert-info small">
+    <i class="bi bi-info-circle"></i>
+    Desde aquí puede <strong>saltarse las reglas del paciente</strong>:
+    agendar Ortodoncia, reconsulta en menos de 15 días, o con menos de 48 h.
+    Solo se valida que la franja no se solape con otra.
+  </div>
+{% endif %}
+
+<form method="post" novalidate id="agenda-admin-form">
+  {% csrf_token %}
+
+  <div class="row g-4">
+    {# --------- Columna izquierda: datos --------- #}
+    <div class="col-lg-6">
+      <div class="card card-soft shadow-sm h-100">
+        <div class="card-body">
+          <h2 class="h6 text-uppercase text-muted mb-3">Datos de la consulta</h2>
+          {% include '_form_fields.html' %}
+        </div>
+      </div>
+    </div>
+
+    {# --------- Columna derecha: calendario --------- #}
+    <div class="col-lg-6">
+      <div class="card card-soft shadow-sm h-100">
+        <div class="card-body">
+          <h2 class="h6 text-uppercase text-muted mb-3">
+            <span class="badge bg-primary me-1">2</span> Día y sección
+          </h2>
+
+          <div id="cargando" class="text-muted small mb-2 d-none">
+            <span class="spinner-border spinner-border-sm"></span> Cargando…
+          </div>
+
+          <div id="sin-disponibilidad" class="alert alert-warning small d-none">
+            No hay turnos en los próximos 30 días para este servicio.
+          </div>
+
+          <div id="aviso-servicio" class="alert alert-secondary small">
+            Seleccione primero un servicio para ver la disponibilidad.
+          </div>
+
+          <div id="calendar-wrap" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <button type="button" id="cal-prev" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <h6 class="mb-0" id="cal-title">—</h6>
+              <button type="button" id="cal-next" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+
+            <div class="calendar-grid" id="calendar-grid"></div>
+            <div class="text-muted small mt-2 text-center">
+              <span class="text-primary fw-semibold">M</span> = Mañana ·
+              <span class="text-primary fw-semibold">T</span> = Tarde
+            </div>
+          </div>
+
+          <div id="slot-panel" class="mt-3 d-none">
+            <h6 class="mb-2">
+              Secciones para <span class="text-primary" id="slot-day-label"></span>
+            </h6>
+            <div class="d-flex flex-wrap gap-2">
+              <button type="button"
+                      class="btn btn-outline-primary slot-btn"
+                      data-seccion="manana">
+                <i class="bi bi-sun"></i>
+                Mañana — <strong class="slot-hora"></strong>
+              </button>
+              <button type="button"
+                      class="btn btn-outline-primary slot-btn"
+                      data-seccion="tarde">
+                <i class="bi bi-cloud-sun"></i>
+                Tarde — <strong class="slot-hora"></strong>
+              </button>
+            </div>
+          </div>
+
+          <div id="resumen-seleccion"
+               class="alert alert-success d-none mt-3 mb-0 small">
+            <i class="bi bi-check2-circle"></i>
+            Seleccionado: <strong id="resumen-texto"></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Campos enviados por el calendario #}
+  <input type="hidden" name="fecha" id="id_fecha"
+         value="{% if consulta %}{{ consulta.fecha|date:'Y-m-d' }}{% endif %}">
+  <input type="hidden" name="seccion" id="id_seccion">
+
+  <div class="d-flex gap-2 mt-4">
+    <button type="submit" id="btn-submit" class="btn btn-primary">
+      <i class="bi bi-check2"></i> Guardar
+    </button>
+    <a href="{% url 'panel:consultas_lista' %}"
+       class="btn btn-outline-secondary">Cancelar</a>
+  </div>
+
+  {# Aviso dinámico del bloqueo #}
+  <div id="aviso-realizada" class="alert alert-warning d-none mt-3">
+    <i class="bi bi-exclamation-triangle"></i>
+    El estado está en <strong>realizada</strong>. Para guardar, debe
+    rellenar <strong>tratamiento</strong> y <strong>medicación</strong>.
+  </div>
+</form>
+
+{# ============ Imágenes (solo al editar) ============ #}
+{% if consulta %}
+<hr class="my-4">
+
+<div class="card card-soft shadow-sm" id="card-imagenes">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h6 text-uppercase text-muted mb-0">
+        <i class="bi bi-images text-primary"></i> Imágenes de la consulta
+      </h2>
+      <button type="button" class="btn btn-sm btn-primary"
+              data-bs-toggle="modal" data-bs-target="#modalSubirImagen">
+        <i class="bi bi-upload"></i> Subir imagen
+      </button>
+    </div>
+
+    <div id="galeria-imagenes">
+      {% if consulta.imagenes.all %}
+        <div class="row g-3">
+          {% for img in consulta.imagenes.all %}
+            <div class="col-6 col-md-4 col-lg-3" data-imagen-id="{{ img.pk }}">
+              <div class="card h-100 border-0 shadow-sm">
+                <button type="button" class="btn p-0 border-0"
+                        data-bs-toggle="modal" data-bs-target="#modalVerImagen"
+                        data-img-src="{{ img.imagen.url }}"
+                        data-img-desc="{{ img.descripcion|default:'Sin descripción' }}">
+                  <img src="{{ img.imagen.url }}"
+                       class="card-img-top"
+                       alt="{{ img.descripcion|default:'Imagen de consulta' }}"
+                       style="aspect-ratio:1; object-fit:cover;">
+                </button>
+                <div class="card-body p-2 small">
+                  <div class="text-truncate" title="{{ img.descripcion }}">
+                    {{ img.descripcion|default:"Sin descripción" }}
+                  </div>
+                  <div class="text-muted" style="font-size:.75rem;">
+                    {{ img.subida|date:"d/m/Y H:i" }}
+                  </div>
+                </div>
+                <div class="card-footer bg-white border-0 p-2">
+                  <button type="button"
+                          class="btn btn-sm btn-outline-danger w-100 btn-eliminar-imagen"
+                          data-url="{% url 'panel:consultas_eliminar_imagen' img.pk %}">
+                    <i class="bi bi-trash"></i> Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted small mb-0" id="mensaje-sin-imagenes">
+          Aún no hay imágenes. Use "Subir imagen" para adjuntar radiografías,
+          fotos de antes/después o cualquier archivo clínico.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ========= Modal para subir imagen ========= #}
+<div class="modal fade" id="modalSubirImagen" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-upload text-primary"></i> Subir imagen
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <form id="form-subir-imagen" method="post" enctype="multipart/form-data"
+            action="{% url 'panel:consultas_subir_imagen' consulta.pk %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div id="error-subir-imagen" class="alert alert-danger d-none small"></div>
+
+          <div class="mb-3">
+            <label for="id_imagen" class="form-label fw-semibold">Imagen</label>
+            <input type="file" name="imagen" id="id_imagen"
+                   class="form-control" accept="image/*" required>
+            <div class="form-text">Formatos aceptados: JPG, PNG, WEBP.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="id_descripcion" class="form-label fw-semibold">
+              Descripción <span class="text-muted small">(opcional)</span>
+            </label>
+            <input type="text" name="descripcion" id="id_descripcion"
+                   class="form-control" placeholder="Ej. Radiografía panorámica"
+                   maxlength="200">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+          <button type="submit" id="btn-subir-imagen" class="btn btn-primary">
+            <i class="bi bi-upload"></i> Subir
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ========= Modal para ver imagen ampliada ========= #}
+<div class="modal fade" id="modalVerImagen" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title small text-muted text-uppercase" id="modalVerImagenDesc">
+          Imagen
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center pt-2">
+        <img id="modalVerImagenImg" src="" alt=""
+             class="img-fluid rounded-3 shadow-sm"
+             style="max-height: 75vh; object-fit: contain;">
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div id="config"
+     data-url-disponibilidad="{% url 'consultations:disponibilidad' 0 %}?admin=1"
+     data-inicial-fecha="{% if consulta %}{{ consulta.fecha|date:'Y-m-d' }}{% endif %}"
+     data-inicial-seccion="{{ seccion_inicial|default:'' }}"
+     data-marcar="{{ marcar|default:'' }}"
+     hidden></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const config     = document.getElementById('config');
+  const urlBase    = config.dataset.urlDisponibilidad;
+  const fechaIni   = config.dataset.inicialFecha || '';
+  const seccionIni = config.dataset.inicialSeccion || '';
+  const marcar     = config.dataset.marcar || '';
+
+  const select    = document.getElementById('id_servicio');
+  const cargando  = document.getElementById('cargando');
+  const sinDisp   = document.getElementById('sin-disponibilidad');
+  const aviso     = document.getElementById('aviso-servicio');
+  const calWrap   = document.getElementById('calendar-wrap');
+  const calGrid   = document.getElementById('calendar-grid');
+  const calTitle  = document.getElementById('cal-title');
+  const calPrev   = document.getElementById('cal-prev');
+  const calNext   = document.getElementById('cal-next');
+  const slotPanel = document.getElementById('slot-panel');
+  const slotLabel = document.getElementById('slot-day-label');
+  const slotBtns  = document.querySelectorAll('.slot-btn');
+  const hiddenFec = document.getElementById('id_fecha');
+  const hiddenSec = document.getElementById('id_seccion');
+  const btnSubmit = document.getElementById('btn-submit');
+  const resumen   = document.getElementById('resumen-seleccion');
+  const resumenTx = document.getElementById('resumen-texto');
+
+  const estadoSelect = document.getElementById('id_estado');
+  const tratField    = document.getElementById('id_tratamiento');
+  const medField     = document.getElementById('id_medicacion');
+  const avisoReal    = document.getElementById('aviso-realizada');
+
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio',
+                 'Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const DIAS_CORTOS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
+  let disponibilidad = {};
+  let mesMostrado = null;
+  let diaSeleccionado = null;
+  let seccionSeleccionada = null;
+
+  function ymd(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  // -------------------------------------------------------------
+  // Botón Guardar: requiere fecha+sección y, si estado=realizada,
+  // tratamiento y medicación
+  // -------------------------------------------------------------
+  function puedeGuardar() {
+    const tieneFecha = !!diaSeleccionado && !!seccionSeleccionada;
+    if (!tieneFecha) return false;
+
+    if (estadoSelect && estadoSelect.value === 'realizada') {
+        const okTrat = tratField && tratField.value.trim().length > 0;
+        return okTrat;   // ← solo tratamiento
+    }
+    return true;
+}
+
+function refrescarBotonGuardar() {
+    btnSubmit.disabled = !puedeGuardar();
+
+    if (estadoSelect && estadoSelect.value === 'realizada') {
+        const faltaTrat = tratField && !tratField.value.trim();
+        if (avisoReal) avisoReal.classList.toggle('d-none', !faltaTrat);
+        if (tratField) tratField.classList.toggle('is-invalid', !!faltaTrat);
+        if (medField) medField.classList.remove('is-invalid');  // ← quitar
+    } else {
+        if (avisoReal) avisoReal.classList.add('d-none');
+        if (tratField) tratField.classList.remove('is-invalid');
+        if (medField) medField.classList.remove('is-invalid');
+    }
+}
+
+  // -------------------------------------------------------------
+  // Calendario
+  // -------------------------------------------------------------
+  function renderCalendar() {
+    if (!mesMostrado) return;
+    const year  = mesMostrado.getFullYear();
+    const month = mesMostrado.getMonth();
+    calTitle.textContent = `${MESES[month]} ${year}`;
+
+    let html = '';
+    DIAS_CORTOS.forEach(d => { html += `<div class="cal-head">${d}</div>`; });
+
+    const first = new Date(year, month, 1);
+    let offset = first.getDay() - 1;
+    if (offset < 0) offset = 6;
+    for (let i = 0; i < offset; i++) html += '<div></div>';
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const fecha = new Date(year, month, d);
+      const iso = ymd(fecha);
+      const disp = disponibilidad[iso];
+      const sinDispo = !disp || (!disp.manana && !disp.tarde);
+
+      const clases = ['cal-day'];
+      if (sinDispo) clases.push('disabled');
+      if (diaSeleccionado === iso) clases.push('selected');
+
+      let slotsInfo = '';
+      if (disp) {
+        const partes = [];
+        if (disp.manana) partes.push(`M ${disp.manana}`);
+        if (disp.tarde)  partes.push(`T ${disp.tarde}`);
+        slotsInfo = `<div class="day-slots">${partes.join(' · ')}</div>`;
+      }
+
+      html += `<div class="${clases.join(' ')}" data-fecha="${iso}">
+        <div class="day-num">${d}</div>
+        ${slotsInfo}
+      </div>`;
+    }
+
+    calGrid.innerHTML = html;
+  }
+
+  function mostrarSlots() {
+    const disp = disponibilidad[diaSeleccionado];
+    if (!disp) return;
+    slotLabel.textContent = disp.label || diaSeleccionado;
+    slotBtns.forEach(btn => {
+      const sec = btn.dataset.seccion;
+      const horaEl = btn.querySelector('.slot-hora');
+      if (disp[sec]) {
+        btn.classList.remove('d-none');
+        btn.disabled = false;
+        horaEl.textContent = disp[sec];
+        btn.classList.toggle('active', seccionSeleccionada === sec);
+      } else {
+        btn.classList.add('d-none');
+      }
+    });
+    slotPanel.classList.remove('d-none');
+  }
+
+  function actualizarResumen() {
+    if (!diaSeleccionado || !seccionSeleccionada) {
+      resumen.classList.add('d-none');
+      refrescarBotonGuardar();
+      return;
+    }
+    const disp = disponibilidad[diaSeleccionado];
+    const secTxt = seccionSeleccionada === 'manana' ? 'Mañana' : 'Tarde';
+    resumenTx.textContent = `${disp.label} · ${secTxt} · ${disp[seccionSeleccionada]}`;
+    resumen.classList.remove('d-none');
+    refrescarBotonGuardar();
+  }
+
+  async function cargarDisponibilidad(servicioId) {
+    disponibilidad = {};
+    diaSeleccionado = null;
+    seccionSeleccionada = null;
+    hiddenFec.value = '';
+    hiddenSec.value = '';
+    slotPanel.classList.add('d-none');
+    resumen.classList.add('d-none');
+    calWrap.classList.add('d-none');
+    refrescarBotonGuardar();
+
+    if (!servicioId) {
+      aviso.classList.remove('d-none');
+      return;
+    }
+    aviso.classList.add('d-none');
+    cargando.classList.remove('d-none');
+    sinDisp.classList.add('d-none');
+
+    try {
+      const url = urlBase.replace('/0/', '/' + servicioId + '/');
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      cargando.classList.add('d-none');
+      if (!data.dias || data.dias.length === 0) {
+        sinDisp.classList.remove('d-none');
+        return;
+      }
+
+      data.dias.forEach(d => { disponibilidad[d.fecha] = d; });
+
+      if (fechaIni && disponibilidad[fechaIni]) {
+        const [y, m] = fechaIni.split('-').map(Number);
+        mesMostrado = new Date(y, m - 1, 1);
+      } else {
+        const [y, m] = data.dias[0].fecha.split('-').map(Number);
+        mesMostrado = new Date(y, m - 1, 1);
+      }
+
+      calWrap.classList.remove('d-none');
+      renderCalendar();
+    } catch (err) {
+      cargando.classList.add('d-none');
+      sinDisp.textContent = 'Error cargando la disponibilidad.';
+      sinDisp.classList.remove('d-none');
+    }
+  }
+
+  // -------------------------------------------------------------
+  // Eventos del calendario
+  // -------------------------------------------------------------
+  select.addEventListener('change', () => cargarDisponibilidad(select.value));
+
+  calGrid.addEventListener('click', (e) => {
+    const celda = e.target.closest('.cal-day:not(.disabled)');
+    if (!celda) return;
+    diaSeleccionado = celda.dataset.fecha;
+    seccionSeleccionada = null;
+    hiddenFec.value = '';
+    hiddenSec.value = '';
+    calGrid.querySelectorAll('.cal-day').forEach(el => el.classList.remove('selected'));
+    celda.classList.add('selected');
+    mostrarSlots();
+    actualizarResumen();
+  });
+
+  slotBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      seccionSeleccionada = btn.dataset.seccion;
+      hiddenFec.value = diaSeleccionado;
+      hiddenSec.value = seccionSeleccionada;
+      slotBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      actualizarResumen();
+    });
+  });
+
+  calPrev.addEventListener('click', () => {
+    if (!mesMostrado) return;
+    mesMostrado = new Date(mesMostrado.getFullYear(), mesMostrado.getMonth() - 1, 1);
+    renderCalendar();
+  });
+  calNext.addEventListener('click', () => {
+    if (!mesMostrado) return;
+    mesMostrado = new Date(mesMostrado.getFullYear(), mesMostrado.getMonth() + 1, 1);
+    renderCalendar();
+  });
+
+  // -------------------------------------------------------------
+  // Bloqueo del botón según estado
+  // -------------------------------------------------------------
+  if (estadoSelect) estadoSelect.addEventListener('change', refrescarBotonGuardar);
+  if (tratField)    tratField.addEventListener('input', refrescarBotonGuardar);
+  if (medField)     medField.addEventListener('input', refrescarBotonGuardar);
+
+  // -------------------------------------------------------------
+  // Inicialización en edición
+  // -------------------------------------------------------------
+  if (select.value) {
+    cargarDisponibilidad(select.value).then(() => {
+      if (!fechaIni) {
+        refrescarBotonGuardar();
+        return;
+      }
+
+      if (!disponibilidad[fechaIni]) {
+        disponibilidad[fechaIni] = {
+          fecha: fechaIni,
+          label: fechaIni,
+          manana: null,
+          tarde: null,
+        };
+      }
+
+      diaSeleccionado = fechaIni;
+      hiddenFec.value = fechaIni;
+
+      const disp = disponibilidad[fechaIni];
+
+      if (seccionIni) {
+        seccionSeleccionada = seccionIni;
+      } else if (disp.manana) {
+        seccionSeleccionada = 'manana';
+      } else if (disp.tarde) {
+        seccionSeleccionada = 'tarde';
+      }
+      if (seccionSeleccionada) hiddenSec.value = seccionSeleccionada;
+
+      renderCalendar();
+      mostrarSlots();
+      actualizarResumen();
+    });
+  } else {
+    refrescarBotonGuardar();
+  }
+
+  // -------------------------------------------------------------
+  // Modal de subida de imágenes (AJAX)
+  // -------------------------------------------------------------
+  (function () {
+    const form = document.getElementById('form-subir-imagen');
+    if (!form) return;
+
+    const btn = document.getElementById('btn-subir-imagen');
+    const errorBox = document.getElementById('error-subir-imagen');
+    const galeria = document.getElementById('galeria-imagenes');
+    const modalEl = document.getElementById('modalSubirImagen');
+    const modal = modalEl && typeof bootstrap !== 'undefined'
+      ? bootstrap.Modal.getOrCreateInstance(modalEl)
+      : null;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.classList.add('d-none');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Subiendo…';
+
+      try {
+        const fd = new FormData(form);
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: fd,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          const errores = data.errors
+            ? Object.values(data.errors).flat().join(' ')
+            : 'No se pudo subir la imagen.';
+          errorBox.textContent = errores;
+          errorBox.classList.remove('d-none');
+          return;
+        }
+
+        const msgVacio = document.getElementById('mensaje-sin-imagenes');
+        if (msgVacio) msgVacio.remove();
+
+        const img = data.imagen;
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-4 col-lg-3';
+        col.dataset.imagenId = img.id;
+        col.innerHTML = `
+          <div class="card h-100 border-0 shadow-sm">
+            <button type="button" class="btn p-0 border-0"
+                    data-bs-toggle="modal" data-bs-target="#modalVerImagen"
+                    data-img-src="${img.url}"
+                    data-img-desc="${(img.descripcion || 'Sin descripción').replace(/"/g,'&quot;')}">
+              <img src="${img.url}" class="card-img-top"
+                   style="aspect-ratio:1; object-fit:cover;">
+            </button>
+            <div class="card-body p-2 small">
+              <div class="text-truncate">${img.descripcion || 'Sin descripción'}</div>
+              <div class="text-muted" style="font-size:.75rem;">${img.subida}</div>
+            </div>
+            <div class="card-footer bg-white border-0 p-2">
+              <button type="button"
+                      class="btn btn-sm btn-outline-danger w-100 btn-eliminar-imagen"
+                      data-url="/panel/imagenes/${img.id}/eliminar/">
+                <i class="bi bi-trash"></i> Eliminar
+              </button>
+            </div>
+          </div>
+        `;
+
+        let fila = galeria.querySelector('.row');
+        if (!fila) {
+          fila = document.createElement('div');
+          fila.className = 'row g-3';
+          galeria.appendChild(fila);
+        }
+        fila.appendChild(col);
+
+        form.reset();
+        if (modal) modal.hide();
+      } catch (err) {
+        errorBox.textContent = 'Error de red al subir la imagen.';
+        errorBox.classList.remove('d-none');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-upload"></i> Subir';
+      }
+    });
+  })();
+
+  // -------------------------------------------------------------
+  // Modal para ver imagen ampliada
+  // -------------------------------------------------------------
+  (function () {
+    const modalEl = document.getElementById('modalVerImagen');
+    if (!modalEl) return;
+    modalEl.addEventListener('show.bs.modal', (e) => {
+      const btn = e.relatedTarget;
+      if (!btn) return;
+      document.getElementById('modalVerImagenImg').src = btn.dataset.imgSrc;
+      document.getElementById('modalVerImagenDesc').textContent =
+        btn.dataset.imgDesc || 'Imagen';
+    });
+  })();
+
+  // -------------------------------------------------------------
+  // Eliminar imagen vía AJAX
+  // -------------------------------------------------------------
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-eliminar-imagen');
+    if (!btn) return;
+    e.preventDefault();
+
+    if (!confirm('¿Eliminar esta imagen?')) return;
+
+    try {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const res = await fetch(btn.dataset.url, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken,
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        const card = btn.closest('[data-imagen-id]');
+        if (card) card.remove();
+        const galeria = document.getElementById('galeria-imagenes');
+        if (galeria && !galeria.querySelector('[data-imagen-id]')) {
+          galeria.innerHTML =
+            '<p class="text-muted small mb-0" id="mensaje-sin-imagenes">Aún no hay imágenes.</p>';
+        }
+      }
+    } catch (err) {
+      alert('No se pudo eliminar la imagen.');
+    }
+  });
+})();
+</script>
+{% endblock %}
