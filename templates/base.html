@@ -170,8 +170,20 @@
   {% block content %}{% endblock %}
 </main>
 
-<footer class="container text-center text-muted py-4 small">
-  © {% now "Y" %} Dari's Dental · Dr. Torres
+<footer class="border-t border-slate-800/50 bg-navy py-12 text-center">
+  <p class="font-display text-lg font-semibold text-white">Dari's Dental</p>
+  <p class="mx-auto mt-3 max-w-md px-4 font-display text-base italic leading-snug text-dental-accent/95 sm:text-lg">
+    «El tiempo lo cura todo… menos las caries, esas las cura el Dr. Torres»
+  </p>
+  <p class="mt-3 text-sm text-white/65">Dr. Torres · Estética y salud bucal</p>
+
+  <div class="mt-6 flex flex-wrap justify-center gap-4 text-sm">
+    <a href="{% url 'privacidad' %}" class="text-dental-accent hover:text-white">Política de Privacidad</a>
+    <a href="{% url 'terminos' %}" class="text-dental-accent hover:text-white">Términos y Condiciones</a>
+    <a href="{% url 'landing' %}#contacto" class="text-dental-accent hover:text-white">Contacto</a>
+  </div>
+
+  <p class="mt-4"><a href="{% url 'landing' %}" class="text-sm font-semibold text-dental-accent hover:text-white">Volver arriba</a></p>
 </footer>
 
 <script

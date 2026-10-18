@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Política de Privacidad — Dari's Dental{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <h1 class="mb-4">Política de Privacidad</h1>
+      <p class="text-muted">Última actualización: {% now "d/m/Y" %}</p>
+
+      <p>En <strong>Dari's Dental</strong> respetamos su privacidad y protegemos sus datos personales. Esta política explica qué información recopilamos, cómo la usamos y cuáles son sus derechos.</p>
+
+      <h2 class="h5 mt-4">1. Datos que recopilamos</h2>
+      <ul>
+        <li><strong>Datos de identificación:</strong> nombre, apellidos, correo electrónico, teléfono, fecha de nacimiento.</li>
+        <li><strong>Datos clínicos:</strong> alergias, medicación, país, y cualquier información que usted decida compartir en las notas de sus consultas.</li>
+        <li><strong>Datos de uso:</strong> registros de acceso, direcciones IP, y cookies técnicas necesarias para el funcionamiento del sitio.</li>
+      </ul>
+
+      <h2 class="h5 mt-4">2. Finalidad del tratamiento</h2>
+      <ul>
+        <li>Gestionar su cuenta y autenticación.</li>
+        <li>Agendar y administrar sus citas odontológicas.</li>
+        <li>Enviar notificaciones relacionadas con sus citas y verificaciones de cuenta.</li>
+        <li>Mejorar la calidad del servicio y la experiencia del usuario.</li>
+      </ul>
+
+      <h2 class="h5 mt-4">3. Base legal</h2>
+      <p>El tratamiento de sus datos se basa en su consentimiento expreso al registrarse y en la ejecución del contrato de prestación de servicios odontológicos.</p>
+
+      <h2 class="h5 mt-4">4. Conservación de los datos</h2>
+      <p>Sus datos se conservarán mientras mantenga una cuenta activa. Si no verifica su cuenta en un plazo de 24 horas, será eliminada automáticamente. Los datos clínicos se conservarán según lo exija la normativa sanitaria aplicable.</p>
+
+      <h2 class="h5 mt-4">5. Sus derechos</h2>
+      <p>Puede ejercer sus derechos de acceso, rectificación, cancelación y oposición escribiéndonos a <a href="mailto:{{ settings.ADMIN_EMAIL|default:'admin@daris-dental.local' }}">{{ settings.ADMIN_EMAIL|default:'admin@daris-dental.local' }}</a> o a través de WhatsApp al <strong>+53 54783902</strong>.</p>
+
+      <h2 class="h5 mt-4">6. Seguridad</h2>
+      <p>Implementamos medidas técnicas y organizativas para proteger sus datos, incluyendo cifrado en tránsito (HTTPS), control de acceso y almacenamiento seguro de imágenes.</p>
+
+      <h2 class="h5 mt-4">7. Cambios en esta política</h2>
+      <p>Podemos actualizar esta política ocasionalmente. Le notificaremos cualquier cambio sustancial a través del correo electrónico registrado.</p>
+
+      <p class="mt-5"><a href="{% url 'landing' %}" class="btn btn-outline-primary">Volver al inicio</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
