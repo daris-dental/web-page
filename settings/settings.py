@@ -13,14 +13,32 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-insecure-key-cambiar')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 #DEBUG = False
-_default_hosts = 'localhost,127.0.0.1,[::1]'
-_allowed = os.environ.get('ALLOWED_HOSTS', _default_hosts if DEBUG else '')
-ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
+# --- ALLOWED_HOSTS ---
+ALLOWED_HOSTS = [
+    'tudominio.com',
+    'www.tudominio.com',
+    'localhost',
+    '127.0.0.1',
+    '[::1]',
+]
 
-# --- CSRF ---
-_default_csrf = 'http://localhost:8000,http://127.0.0.1:8000'
-_csrf = os.environ.get('CSRF_TRUSTED_ORIGINS', _default_csrf if DEBUG else '')
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf.split(',') if o.strip()]
+# Render inyecta el dominio externo automáticamente
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# Permitir también la variable ALLOWED_HOSTS si la defines manualmente
+_extra = os.environ.get('ALLOWED_HOSTS', '').strip()
+if _extra:
+    ALLOWED_HOSTS += [h.strip() for h in _extra.split(',') if h.strip()]
+
+# --- CSRF_TRUSTED_ORIGINS ---
+CSRF_TRUSTED_ORIGINS = [
+    'https://tudominio.com',
+    'https://www.tudominio.com',
+]
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
 
 
 # Application definition
